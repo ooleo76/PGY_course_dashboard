@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+  :root{
+    --blue:#2F5597; --blue2:#4472C4; --ink:#1f2937; --mut:#6b7280;
+    --line:#e5e7eb; --bg:#f4f6fb; --green:#2e9e5b; --greenbg:#e2efda;
+    --red:#c0392b; --redbg:#fde9e9; --amber:#d98800;
+    --A:#4472C4; --B:#2e9e5b; --C:#d98800; --D:#9b59b6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft JhengHei","Segoe UI",Arial,sans-serif;
+       background:var(--bg);color:var(--ink);font-size:14px}
+  header{background:linear-gradient(100deg,var(--blue),var(--blue2));color:#fff;
+         padding:18px 26px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  header h1{margin:0;font-size:20px;font-weight:700}
+  header .sub{opacity:.85;font-size:12px;margin-top:4px}
+  nav{display:flex;gap:4px;background:#fff;padding:0 18px;border-bottom:1px solid var(--line);
+      position:sticky;top:0;z-index:20;overflow-x:auto}
+  nav button{border:0;background:none;padding:14px 18px;font-size:14px;color:var(--mut);
+             cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-family:inherit}
+  nav button.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+  main{padding:22px;max-width:1180px;margin:0 auto}
+  .tab{display:none} .tab.active{display:block}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+        box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .card .k{font-size:12px;color:var(--mut)} .card .v{font-size:28px;font-weight:800;color:var(--blue);margin-top:4px}
+  .card .v small{font-size:13px;color:var(--mut);font-weight:500}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:20px}
+  .panel h2{margin:0 0 14px;font-size:16px;color:var(--blue)}
+  .prow{display:flex;align-items:center;gap:12px;margin:10px 0}
+  .prow .name{width:150px;font-weight:600;flex-shrink:0}
+  .prow .meta{width:120px;font-size:12px;color:var(--mut);flex-shrink:0}
+  .bar{flex:1;height:20px;background:#eef0f5;border-radius:10px;overflow:hidden;position:relative}
+  .bar>span{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--blue2),var(--green));
+            border-radius:10px;transition:width .5s}
+  .bar em{position:absolute;right:8px;top:0;line-height:20px;font-size:11px;color:#333;font-style:normal;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:center}
+  th{background:#f0f3fa;color:var(--blue);font-weight:700;position:sticky;top:0}
+  td.name{text-align:left;font-weight:600}
+  .yes{color:var(--green);font-weight:800}.no{color:var(--red);font-weight:800}
+  td.yes-c{background:var(--greenbg)}td.no-c{background:var(--redbg)}
+  .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;color:#fff;font-weight:700}
+  .cA{background:var(--A)}.cB{background:var(--B)}.cC{background:var(--C)}.cD{background:var(--D)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  select,input[type=text]{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px}
+  .muted{color:var(--mut);font-size:12px}
+  /* 甘特圖 */
+  .gantt-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  .gantt{position:relative;min-width:820px}
+  .g-head{display:flex;border-bottom:1px solid var(--line);position:relative;height:30px}
+  .g-row{display:flex;align-items:center;border-bottom:1px dashed #eef;height:46px;position:relative}
+  .g-label{width:150px;flex-shrink:0;padding-left:14px;font-weight:600;font-size:13px;
+           background:#fafbfe;height:100%;display:flex;align-items:center;border-right:1px solid var(--line)}
+  .g-track{position:relative;flex:1;height:100%}
+  .g-month{position:absolute;top:0;font-size:11px;color:var(--mut);border-left:1px solid #eef;
+           height:100%;padding-left:4px}
+  .g-mark{position:absolute;top:12px;height:22px;border-radius:6px;color:#fff;font-size:10px;
+          display:flex;align-items:center;justify-content:center;padding:0 6px;white-space:nowrap;
+          transform:translateX(-2px);cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:5}
+  .g-today b{position:absolute;top:-2px;left:3px;color:var(--red);font-size:10px;font-weight:700;white-space:nowrap}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;font-size:12px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .loading{padding:60px;text-align:center;color:var(--mut)}
+  .refresh{margin-left:auto;background:var(--blue);color:#fff;border:0;padding:8px 14px;
+           border-radius:8px;cursor:pointer;font-family:inherit}
+  .heat0{background:#f7f9fc;color:#c7cdd6}.heat1{background:#dbe6f7}.heat2{background:#b7cdf0}.heat3{background:#8fb1e8;color:#fff}
+</style>
+</head>
+<body>
+<header>
+  <h1>PGY1 急救課程 儀表板</h1>
+  <div class="sub">急診 UGY-PGY 訓練計畫 · 四梯 A/B/C/D · <span id="gen"></span></div>
+</header>
+<nav id="nav">
+  <button data-t="ov" class="active">總覽</button>
+  <button data-t="gantt">甘特圖</button>
+  <button data-t="fac">師資一覽</button>
+  <button data-t="stu">學員完課</button>
+  <button data-t="all">12個月總表</button>
+</nav>
+<main>
+  <div id="ov" class="tab active"><div class="loading">載入中…</div></div>
+  <div id="gantt" class="tab"></div>
+  <div id="fac" class="tab"></div>
+  <div id="stu" class="tab"></div>
+  <div id="all" class="tab"></div>
+</main>
+
+<script>
+let DATA=null;
+const $=s=>document.querySelector(s);
+const cls=b=>({A:'cA',B:'cB',C:'cC',D:'cD'}[b]||'');
+const colorOf=b=>({A:'#4472C4',B:'#2e9e5b',C:'#d98800',D:'#9b59b6'}[b]||'#888');
+
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); $('#'+b.dataset.t).classList.add('active');
+  if(b.dataset.t==='gantt') renderGantt();
+});
+
+function load(){
+  google.script.run.withSuccessHandler(j=>{
+    DATA=JSON.parse(j); $('#gen').textContent='更新於 '+DATA.generatedAt;
+    renderOverview(); renderFaculty(); renderStudents(); renderAll();
+  }).withFailureHandler(e=>{$('#ov').innerHTML='<div class="loading">讀取失敗：'+e.message+'</div>';})
+    .getDashboardData();
+}
+window.addEventListener('load',load);
+
+/* ---------- 完課判定 ---------- */
+function done(stu,course){ return stu.completion[course]!=='' && stu.completion[course]!=null; }
+function courseRate(course){
+  const tot=DATA.students.length||1;
+  const d=DATA.students.filter(s=>done(s,course)).length;
+  return {d,tot,pct:Math.round(d/tot*100)};
+}
+
+/* ================= 總覽 ================= */
+function renderOverview(){
+  const S=DATA.students, sess=DATA.sessions;
+  const totalPairs=S.length*DATA.courses.length||1;
+  let donePairs=0; S.forEach(s=>DATA.courses.forEach(c=>{if(done(s,c))donePairs++;}));
+  const avg=Math.round(donePairs/totalPairs*100);
+  const doneSess=sess.filter(x=>x.date && x.date<=DATA.today).length;
+  const cards=[
+    ['學員總數',S.length,''],
+    ['已排課場次',sess.length,''],
+    ['已完成場次',doneSess+'<small> / '+sess.length+'</small>',''],
+    ['整體完課率',avg+'<small>%</small>','']
+  ];
+  let h='<div class="cards">'+cards.map(c=>
+    `<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('')+'</div>';
+
+  h+='<div class="panel"><h2>各課程 完成率</h2>';
+  DATA.courses.forEach(c=>{
+    const r=courseRate(c);
+    const ns=sess.filter(x=>x.course===c).length;
+    h+=`<div class="prow"><div class="name">${c}</div>
+        <div class="meta">${ns} 場次</div>
+        <div class="bar"><span style="width:${r.pct}%"></span><em>${r.d}/${r.tot} · ${r.pct}%</em></div></div>`;
+  });
+  h+='</div>';
+
+  // 各梯完課率
+  h+='<div class="panel"><h2>各梯 平均完課率</h2>';
+  DATA.batches.forEach(b=>{
+    const grp=S.filter(s=>s.batch===b);
+    if(!grp.length){return;}
+    let dp=0; grp.forEach(s=>DATA.courses.forEach(c=>{if(done(s,c))dp++;}));
+    const pct=Math.round(dp/(grp.length*DATA.courses.length)*100);
+    h+=`<div class="prow"><div class="name"><span class="chip ${cls(b)}">${b}梯</span></div>
+        <div class="meta">${grp.length} 人</div>
+        <div class="bar"><span style="width:${pct}%"></span><em>${pct}%</em></div></div>`;
+  });
+  h+='</div>';
+  $('#ov').innerHTML=h;
+}
+
+/* ================= 甘特圖 ================= */
+function renderGantt(){
+  const el=$('#gantt');
+  const sess=DATA.sessions.filter(s=>s.date);
+  if(!sess.length){el.innerHTML='<div class="panel">尚無含日期的排課資料，請先在『課程場次』填入日期。</div>';return;}
+  const dates=sess.map(s=>new Date(s.date));
+  let min=new Date(Math.min(...dates)), max=new Date(Math.max(...dates)), today=new Date(DATA.today);
+  min=new Date(min.getFullYear(),min.getMonth(),1);
+  max=new Date(max.getFullYear(),max.getMonth()+1,0);
+  if(today<min)min=new Date(today.getFullYear(),today.getMonth(),1);
+  if(today>max)max=new Date(today.getFullYear(),today.getMonth()+1,0);
+  const span=(max-min)/86400000||1;
+  const pos=d=>((new Date(d)-min)/86400000)/span*100;
+
+  // 月份刻度
+  let months=[],cur=new Date(min);
+  while(cur<=max){months.push(new Date(cur));cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+  let head='<div class="g-head"><div class="g-label" style="background:#f0f3fa">課程 \\ 月份</div><div class="g-track">';
+  months.forEach(m=>{head+=`<div class="g-month" style="left:${pos(m)}%">${m.getFullYear()}/${String(m.getMonth()+1).padStart(2,'0')}</div>`;});
+  head+='</div></div>';
+
+  let rows='';
+  DATA.courses.forEach(c=>{
+    let marks='';
+    sess.filter(s=>s.course===c).forEach(s=>{
+      marks+=`<div class="g-mark" style="left:${pos(s.date)}%;background:${colorOf(s.batch)}"
+              title="${s.batch}梯 場次${s.no||''}｜${s.date} ${s.time||''}｜${s.place||''}｜${s.teacher||''}">${s.batch}${s.no||''}</div>`;
+    });
+    rows+=`<div class="g-row"><div class="g-label">${c}</div><div class="g-track">${marks}
+           <div class="g-today" style="left:${pos(DATA.today)}%"><b>今日</b></div></div></div>`;
+  });
+
+  const legend='<div class="legend">'+DATA.batches.map(b=>
+    `<span><i class="dot" style="background:${colorOf(b)}"></i>${b}梯</span>`).join('')+
+    '<span><i class="dot" style="background:var(--red)"></i>今日紅線</span></div>';
+
+  el.innerHTML=`<div class="panel"><h2>課程甘特圖（依實際日期）</h2>${legend}
+    <div class="gantt-wrap"><div class="gantt">${head}${rows}</div></div>
+    <div class="muted" style="margin-top:8px">標記顯示「梯次+場次」，滑鼠移上可看日期/地點/教師。</div></div>`;
+}
+
+/* ================= 師資一覽 ================= */
+function renderFaculty(){
+  let h='<div class="panel"><h2>師資一覽（含排課場次統計）</h2><table><thead><tr>'
+    +'<th>姓名</th><th>科別</th><th>職稱</th><th>負責課程</th><th>手機簡碼</th>'
+    +'<th>排課場次</th><th>累計人數</th><th>備註</th></tr></thead><tbody>';
+  DATA.faculty.forEach(f=>{
+    const mine=DATA.sessions.filter(s=>s.teacher && s.teacher.indexOf(f.name)>=0);
+    const cnt=mine.length;
+    const ppl=mine.reduce((a,s)=>a+(Number(s.attended)||Number(s.planned)||0),0);
+    h+=`<tr><td class="name">${f.name}</td><td>${f.dept}</td><td>${f.title}</td>
+        <td style="text-align:left">${f.courses}</td><td>${f.phone}</td>
+        <td><b>${cnt}</b></td><td>${ppl||''}</td><td style="text-align:left">${f.note}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  // 未列於師資但出現在排課的教師
+  const known=new Set(DATA.faculty.map(f=>f.name));
+  const others=new Set();
+  DATA.sessions.forEach(s=>{if(s.teacher && ![...known].some(n=>s.teacher.indexOf(n)>=0))others.add(s.teacher);});
+  if(others.size)h+=`<div class="muted" style="margin-top:10px">⚠ 出現在排課但不在師資名冊：${[...others].join('、')}（建議補入師資分頁以利統計）</div>`;
+  h+='</div>';
+  $('#fac').innerHTML=h;
+}
+
+/* ================= 學員完課 ================= */
+function renderStudents(){
+  const opts=['<option value="">全部課程</option>'].concat(DATA.courses.map(c=>`<option>${c}</option>`)).join('');
+  $('#stu').innerHTML=`<div class="panel"><h2>學員完課明細</h2>
+    <div class="controls">
+      <input id="sSearch" type="text" placeholder="搜尋姓名/員編…">
+      <select id="sBatch"><option value="">全部梯次</option>${DATA.batches.map(b=>`<option>${b}</option>`).join('')}</select>
+      <select id="sCourse">${opts}</select>
+      <select id="sStatus"><option value="">全部狀態</option><option value="done">已完成</option><option value="undone">未完成</option></select>
+      <span class="muted" id="sCount"></span>
+    </div><div id="sTable"></div></div>`;
+  ['sSearch','sBatch','sCourse','sStatus'].forEach(id=>$('#'+id).oninput=drawStuTable);
+  drawStuTable();
+}
+function drawStuTable(){
+  const kw=$('#sSearch').value.trim(), fb=$('#sBatch').value, fc=$('#sCourse').value, fs=$('#sStatus').value;
+  let list=DATA.students.slice();
+  if(kw)list=list.filter(s=>(s.name+s.id).indexOf(kw)>=0);
+  if(fb)list=list.filter(s=>s.batch===fb);
+  if(fc&&fs)list=list.filter(s=>fs==='done'?done(s,fc):!done(s,fc));
+  else if(fc&&!fs){/* 只選課程不濾狀態 */}
+  let h='<table><thead><tr><th>員編</th><th>姓名</th><th>梯次</th>'
+    +DATA.courses.map(c=>`<th>${c}</th>`).join('')+'<th>完成</th></tr></thead><tbody>';
+  list.forEach(s=>{
+    let dc=0;
+    const tds=DATA.courses.map(c=>{const ok=done(s,c);if(ok)dc++;
+      return `<td class="${ok?'yes-c':'no-c'}">${ok?'<span class="yes">✔</span>':'<span class="no">—</span>'}</td>`;}).join('');
+    h+=`<tr><td>${s.id}</td><td class="name">${s.name}</td>
+        <td><span class="chip ${cls(s.batch)}">${s.batch||'?'}</span></td>${tds}
+        <td><b>${dc}/${DATA.courses.length}</b></td></tr>`;
+  });
+  h+='</tbody></table>';
+  $('#sTable').innerHTML=h; $('#sCount').textContent='共 '+list.length+' 人';
+}
+
+/* ================= 12個月總表 ================= */
+function renderAll(){
+  // (1) 12個月 × 課程 排課熱度表
+  const sess=DATA.sessions.filter(s=>s.date);
+  const monthsSet=new Set(sess.map(s=>s.date.slice(0,7)));
+  const months=[...monthsSet].sort();
+  let heat='';
+  if(months.length){
+    heat='<div class="panel"><h2>12 個月排課總表（各月場次數）</h2><table><thead><tr><th>課程 \\ 月份</th>'
+      +months.map(m=>`<th>${m}</th>`).join('')+'<th>合計</th></tr></thead><tbody>';
+    DATA.courses.forEach(c=>{
+      let tot=0;
+      const cells=months.map(m=>{const n=sess.filter(s=>s.course===c&&s.date.slice(0,7)===m).length;tot+=n;
+        const hc=n===0?'heat0':n===1?'heat1':n===2?'heat2':'heat3';
+        return `<td class="${hc}">${n||''}</td>`;}).join('');
+      heat+=`<tr><td class="name">${c}</td>${cells}<td><b>${tot}</b></td></tr>`;
+    });
+    heat+='</tbody></table></div>';
+  }else{
+    heat='<div class="panel"><h2>12 個月排課總表</h2><div class="muted">尚無含日期的排課。</div></div>';
+  }
+
+  // (2) 全學員 checklist（統計未上課程）
+  let list='<div class="panel"><h2>全學員完課 Checklist</h2>'
+    +'<div class="muted" style="margin-bottom:10px">✔ 已完成　—未完成；最右欄列出尚未上過的課。</div>'
+    +'<table><thead><tr><th>員編</th><th>姓名</th><th>梯次</th>'
+    +DATA.courses.map(c=>`<th>${c}</th>`).join('')+'<th>完成</th><th style="text-align:left">尚未完成課程</th></tr></thead><tbody>';
+  DATA.students.forEach(s=>{
+    let dc=0,miss=[];
+    const tds=DATA.courses.map(c=>{const ok=done(s,c);if(ok)dc++;else miss.push(c);
+      return `<td class="${ok?'yes-c':'no-c'}">${ok?'<span class="yes">✔</span>':'—'}</td>`;}).join('');
+    list+=`<tr><td>${s.id}</td><td class="name">${s.name}</td>
+      <td><span class="chip ${cls(s.batch)}">${s.batch||'?'}</span></td>${tds}
+      <td><b>${dc}/${DATA.courses.length}</b></td>
+      <td style="text-align:left;color:${miss.length?'var(--red)':'var(--green)'}">${miss.length?miss.join('、'):'全部完成 ✔'}</td></tr>`;
+  });
+  list+='</tbody></table></div>';
+
+  $('#all').innerHTML=heat+list;
+}
+</script>
+</body>
+</html>

@@ -94,6 +94,11 @@
 </main>
 
 <script>
+/* ★★★ 唯一要改的地方 ★★★
+   把 GAS 部署後拿到的網址貼在下面引號中間（結尾是 /exec）。
+   例：const GAS_URL = "https://script.google.com/macros/s/AKfyc.../exec"; */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxGX6HQeXNyQe_POtofmRmngiaYq7BWnNKNbIqUwJNCB8Y2_NYRd4HigpHGhvt3O_KE/exec";
+
 let DATA=null;
 const $=s=>document.querySelector(s);
 const cls=b=>({A:'cA',B:'cB',C:'cC',D:'cD'}[b]||'');
@@ -106,12 +111,29 @@ document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
   if(b.dataset.t==='gantt') renderGantt();
 });
 
+function onData(d){
+  DATA=d; $('#gen').textContent='更新於 '+(DATA.generatedAt||'');
+  renderOverview(); renderFaculty(); renderStudents(); renderAll();
+}
+function showErr(msg){
+  $('#ov').innerHTML='<div class="loading">讀取失敗：'+msg
+    +'<br><br>請確認：①上方 GAS_URL 已貼正確網址（結尾 /exec）②GAS 部署權限設為「任何人」。</div>';
+}
+/* 先用 fetch 抓；若被 CORS 擋下，自動改用 JSONP */
 function load(){
-  google.script.run.withSuccessHandler(j=>{
-    DATA=JSON.parse(j); $('#gen').textContent='更新於 '+DATA.generatedAt;
-    renderOverview(); renderFaculty(); renderStudents(); renderAll();
-  }).withFailureHandler(e=>{$('#ov').innerHTML='<div class="loading">讀取失敗：'+e.message+'</div>';})
-    .getDashboardData();
+  if(GAS_URL.indexOf('http')!==0){showErr('尚未填入 GAS_URL');return;}
+  fetch(GAS_URL,{method:'GET'})
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(onData)
+    .catch(()=>jsonp());
+}
+function jsonp(){
+  const cb='__cb'+Date.now();
+  window[cb]=function(d){onData(d);delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);};
+  const s=document.createElement('script');
+  s.src=GAS_URL+(GAS_URL.indexOf('?')>=0?'&':'?')+'callback='+cb;
+  s.onerror=function(){showErr('無法連線至 GAS（網址或權限有誤）');};
+  document.body.appendChild(s);
 }
 window.addEventListener('load',load);
 

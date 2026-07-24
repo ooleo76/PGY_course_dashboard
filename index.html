@@ -8,7 +8,7 @@
     --blue:#2F5597; --blue2:#4472C4; --ink:#1f2937; --mut:#6b7280;
     --line:#e5e7eb; --bg:#f4f6fb; --green:#2e9e5b; --greenbg:#e2efda;
     --red:#c0392b; --redbg:#fde9e9; --amber:#d98800;
-    --A:#4472C4; --B:#2e9e5b; --C:#d98800; --D:#9b59b6;
+    --A:#4472C4; --B:#2e9e5b; --C:#d98800; --D:#9b59b6; --E:#17a2a2;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Microsoft JhengHei","Segoe UI",Arial,sans-serif;
@@ -45,7 +45,7 @@
   .yes{color:var(--green);font-weight:800}.no{color:var(--red);font-weight:800}
   td.yes-c{background:var(--greenbg)}td.no-c{background:var(--redbg)}
   .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;color:#fff;font-weight:700}
-  .cA{background:var(--A)}.cB{background:var(--B)}.cC{background:var(--C)}.cD{background:var(--D)}
+  .cA{background:var(--A)}.cB{background:var(--B)}.cC{background:var(--C)}.cD{background:var(--D)}.cE{background:var(--E)}
   .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
   select,input[type=text]{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px}
   .muted{color:var(--mut);font-size:13px}
@@ -99,12 +99,13 @@
 
 <script>
 /* ★★★ 唯一要改的地方 ★★★  貼上 GAS 部署後的網址（結尾 /exec） */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbx1DtCCYSxgeQ0IH_thstiHcRi_mLsqHjUdt_myJmTIv3mv6m8ddl5Q7RSVNDTvCnXzxA/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycby1m1Ygep8uZapOSr2vHCkIxaGzBGorUapDjHJcK3CNKXXaglwKtc1gktmREQGToxxx/exec";
 
 let DATA=null, GZOOM=1;
 const $=s=>document.querySelector(s);
-const cls=b=>({A:'cA',B:'cB',C:'cC',D:'cD'}[b]||'');
-const colorOf=b=>({A:'#4472C4',B:'#2e9e5b',C:'#d98800',D:'#9b59b6'}[b]||'#888');
+const cls=b=>({A:'cA',B:'cB',C:'cC',D:'cD',E:'cE'}[b]||'');
+const colorOf=b=>({A:'#4472C4',B:'#2e9e5b',C:'#d98800',D:'#9b59b6',E:'#17a2a2'}[b]||'#888');
+const sBatches=()=>DATA.studentBatches||DATA.batches;
 
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
@@ -162,11 +163,11 @@ function renderOverview(){
         <div class="bar"><span style="width:${r.pct}%"></span><em>${r.d}/${r.tot} · ${r.pct}%</em></div></div>`;
   });
   h+='</div><div class="panel"><h2>各梯 平均完課率</h2>';
-  DATA.batches.forEach(b=>{
+  sBatches().forEach(b=>{
     const grp=S.filter(s=>s.batch===b); if(!grp.length)return;
     let dp=0; grp.forEach(s=>DATA.courses.forEach(c=>{if(done(s,c))dp++;}));
     const pct=Math.round(dp/(grp.length*DATA.courses.length)*100);
-    h+=`<div class="prow"><div class="name"><span class="chip ${cls(b)}">${b}梯</span></div>
+    h+=`<div class="prow"><div class="name"><span class="chip ${cls(b)}">${b==='E'?'E梯(其他月)':b+'梯'}</span></div>
         <div class="meta">${grp.length} 人</div>
         <div class="bar"><span style="width:${pct}%"></span><em>${pct}%</em></div></div>`;
   });
@@ -196,8 +197,9 @@ function renderGantt(){
     let marks='';
     sess.filter(s=>s.course===c).forEach(s=>{
       const t=[s.teacher,s.teacher2].filter(Boolean).join(' / ');
+      const cfm=s.confirmed?('已確認'+(s.confirmTime?' '+s.confirmTime:'')):'未確認';
       marks+=`<div class="g-mark" style="left:${pos(s.date)}%;background:${colorOf(s.batch)}"
-              title="${s.batch}梯 場次${s.no||''}｜${s.date} ${s.time||''}｜${s.place||''}｜${t}">${s.batch}${s.no||''}</div>`;
+              title="${s.batch}梯 場次${s.no||''}｜${s.date} ${s.time||''}｜${s.place||''}｜${t}｜${cfm}">${s.batch}${s.no||''}</div>`;
     });
     rows+=`<div class="g-row"><div class="g-label">${c}</div><div class="g-track">${marks}
            <div class="g-today" style="left:${pos(DATA.today)}%"><b>今日</b></div></div></div>`;
@@ -232,17 +234,41 @@ function enableDrag(w){
 function renderFaculty(){
   let h='<div class="panel"><h2>師資一覽（含排課場次統計）</h2><table><thead><tr>'
     +'<th>姓名</th><th>科別</th><th>職稱</th><th>負責課程</th><th>手機簡碼</th>'
-    +'<th>排課場次</th><th>累計人數</th><th>備註</th></tr></thead><tbody>';
+    +'<th>排課場次</th><th>已確認</th><th>最近確認時間</th><th>累計人數</th><th>備註</th></tr></thead><tbody>';
   DATA.faculty.forEach(f=>{
     const mine=DATA.sessions.filter(s=>
       (s.teacher&&s.teacher.indexOf(f.name)>=0)||(s.teacher2&&s.teacher2.indexOf(f.name)>=0));
     const cnt=mine.length;
+    const ok=mine.filter(s=>s.confirmed);
+    const times=ok.map(s=>s.confirmTime).filter(Boolean).sort();
+    const last=times.length?times[times.length-1]:'';
     const ppl=mine.reduce((a,s)=>a+(Number(s.attended)||Number(s.planned)||0),0);
+    const cfmTxt=cnt?`<span class="${ok.length===cnt?'yes':'no'}">${ok.length}/${cnt}</span>`:'';
     h+=`<tr><td class="name">${f.name}</td><td>${f.dept}</td><td>${f.title}</td>
         <td style="text-align:left">${f.courses}</td><td>${f.phone}</td>
-        <td><b>${cnt}</b></td><td>${ppl||''}</td><td style="text-align:left">${f.note}</td></tr>`;
+        <td><b>${cnt}</b></td><td>${cfmTxt}</td><td>${last}</td>
+        <td>${ppl||''}</td><td style="text-align:left">${f.note}</td></tr>`;
   });
   h+='</tbody></table>';
+
+  // 場次確認明細
+  const ss=DATA.sessions.filter(s=>s.course);
+  if(ss.length){
+    const un=ss.filter(s=>!s.confirmed).length;
+    h+=`<div class="panel" style="margin-top:20px"><h2>場次教師確認明細　
+      <span class="muted" style="font-size:14px;font-weight:400">未確認 ${un} / 共 ${ss.length} 場</span></h2>
+      <table><thead><tr><th>梯次</th><th>課程</th><th>場次</th><th>日期</th><th>時間</th>
+      <th>負責教師</th><th>確認狀態</th><th>確認時間</th></tr></thead><tbody>`;
+    ss.forEach(s=>{
+      const t=[s.teacher,s.teacher2].filter(Boolean).join(' / ');
+      h+=`<tr><td><span class="chip ${cls(s.batch)}">${s.batch}</span></td>
+        <td class="name">${s.course}</td><td>${s.no||''}</td><td>${s.date||''}</td><td>${s.time||''}</td>
+        <td>${t}</td>
+        <td class="${s.confirmed?'yes-c':'no-c'}">${s.confirmed?'<span class="yes">已確認</span>':'<span class="no">未確認</span>'}</td>
+        <td>${s.confirmTime||''}</td></tr>`;
+    });
+    h+='</tbody></table></div>';
+  }
   const known=DATA.faculty.map(f=>f.name);
   const others=new Set();
   DATA.sessions.forEach(s=>{[s.teacher,s.teacher2].filter(Boolean).forEach(t=>{
@@ -257,7 +283,7 @@ function renderStudents(){
   $('#stu').innerHTML=`<div class="panel"><h2>學員完課明細</h2>
     <div class="controls">
       <input id="sSearch" type="text" placeholder="搜尋姓名/員編…">
-      <select id="sBatch"><option value="">全部梯次</option>${DATA.batches.map(b=>`<option>${b}</option>`).join('')}</select>
+      <select id="sBatch"><option value="">全部梯次</option>${sBatches().map(b=>`<option>${b}</option>`).join('')}</select>
       <select id="sCourse">${opts}</select>
       <select id="sStatus"><option value="">全部狀態</option><option value="done">已完成</option><option value="undone">未完成</option></select>
       <span class="muted" id="sCount"></span></div><div id="sTable"></div></div>`;

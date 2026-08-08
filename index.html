@@ -283,6 +283,7 @@ function renderGantt(){
     <div class="gantt-wrap" id="gwrap"><div class="gantt" id="ginner">${head}${rows}</div></div></div>
     <div id="gdetail"></div>`;
   applyZoom();
+  requestAnimationFrame(layoutGantt);
   $('#gzin').onclick=()=>{GZOOM=Math.min(6,GZOOM+0.5);applyZoom();};
   $('#gzout').onclick=()=>{GZOOM=Math.max(1,GZOOM-0.5);applyZoom();};
   $('#gzrst').onclick=()=>{GZOOM=1;applyZoom();$('#gwrap').scrollLeft=0;};
@@ -295,7 +296,33 @@ function renderGantt(){
       $('#gdetail').scrollIntoView({behavior:'smooth',block:'nearest'});}
   }));
 }
-function applyZoom(){const g=$('#ginner');if(g)g.style.width=(900*GZOOM)+'px';}
+/* 同列標記防重疊：依實際像素位置貪婪分層，重疊者往下錯開，列高自動增加 */
+function layoutGantt(){
+  const inner=$('#ginner'); if(!inner) return;
+  const GAP=4, H=22, STEP=24, TOP=6;
+  inner.querySelectorAll('.g-row').forEach(row=>{
+    const marks=Array.prototype.slice.call(row.querySelectorAll('.g-mark'));
+    if(!marks.length){row.style.height='48px';return;}
+    marks.sort((a,b)=>a.offsetLeft-b.offsetLeft);
+    const laneEnd=[];
+    marks.forEach(m=>{
+      const l=m.offsetLeft, r=l+m.offsetWidth;
+      let lane=0;
+      while(lane<laneEnd.length && !(laneEnd[lane]+GAP<=l)) lane++;
+      laneEnd[lane]=r;
+      m.style.top=(TOP+lane*STEP)+'px';
+    });
+    const lanes=laneEnd.length;
+    row.style.height=Math.max(48, 2*TOP+(lanes-1)*STEP+H)+'px';
+  });
+}
+let _gz;
+window.addEventListener('resize',()=>{clearTimeout(_gz);_gz=setTimeout(layoutGantt,150);});
+function applyZoom(){
+  const g=$('#ginner'); if(!g) return;
+  g.style.width=(900*GZOOM)+'px';
+  requestAnimationFrame(layoutGantt);
+}
 function enableDrag(w){
   let down=false,sx=0,sl=0,moved=false;
   w.addEventListener('mousedown',e=>{down=true;moved=false;w.classList.add('drag');sx=e.pageX;sl=w.scrollLeft;});
